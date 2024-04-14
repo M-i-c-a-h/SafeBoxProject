@@ -16,6 +16,10 @@
 #include <LiquidCrystal.h>
 #include <EEPROM.h>//to store into adruinos memory
 // Define Slaves answer size
+
+
+
+
 #define ANSWERSIZE 5
 
 
