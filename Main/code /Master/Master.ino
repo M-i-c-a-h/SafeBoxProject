@@ -28,7 +28,7 @@ bool authMode= false;
 String setupKeyCode1="";
 String setupKeyCode2="";
 String stars="";
-int setupFingerPrint= -1;
+int setupFingerPrint = -1;
 
 volatile int state= 1;
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;//lcd
@@ -63,6 +63,7 @@ int readFourDigitValue() {
   return (highByte << 8) | lowByte; // Reconstruct the original value
 }
 
+// keypad Arduino
 char request_Slave(){
   //this slave should return keypad related data
   Wire.requestFrom(SLAVE_ADDR,1);
@@ -86,7 +87,7 @@ char request_Slave2(){
 
     char b = Wire.read();
     
-    result =b;  
+    result = b;
    
   } 
   return result;
@@ -107,37 +108,39 @@ void setup() {
   // Print a message to the LCD.
   lcd.print("hello, world!");
   int passcode= readFourDigitValue();
-  if (passcode==-1){//no password on system yet
-    setupMode= true;
+  if (passcode == -1){//no password on system yet
+    setupMode = true;
     lcd.clear();
     lcd_toprow= messages[0];
     lcd_bottomrow= messages[1];
+
     //TODO: send message to fingerprint slave to run enrollment code
     
   }
   else{
     //TODO: send message to fingerprint slave to run authentication code
-    authMode= true;
+    authMode = true;
     lcd.clear();
-    lcd_toprow= messages[2];
-    lcd_bottomrow=messages[3];
+//    lcd_toprow= messages[2];
+//    lcd_bottomrow=messages[3];
   }
 }
 
 void loop() {
   //example_operation();
  
-  char result1= request_Slave();//
-  char result2= request_Slave2();
-  if (setupMode==true){
+  char result1 = request_Slave();//
+  char result2 = request_Slave2();
+
+  if (setupMode){
     setupModeFunc(result1, result2);
   }
-  else if(authMode= true){
+  else if(authMode){
     authModeFunc(result1, result2);
   }
-  
-  
-  
+
+
+
   displayLcd();
   
   
@@ -154,8 +157,9 @@ void setupModeFunc(char result1, char result2){
     if(isdigit(result1)){
       lcd.clear();
       Serial.println("here");
-      
-      setupKeyCode1+=result1;
+
+      // build access code from user
+      setupKeyCode1 += result1;
       stars+="*";
       lcd_bottomrow=stars;
       if (setupKeyCode1.length()==4){
@@ -166,7 +170,8 @@ void setupModeFunc(char result1, char result2){
     }
     
   }
-  else if(setupKeyCode2.length()<4){//keyCode not confirmed
+  // keyCode not confirmed
+  else if(setupKeyCode2.length()<4){
     if(isdigit(result1)){
       lcd.clear();
       Serial.println("here");
@@ -190,15 +195,15 @@ void setupModeFunc(char result1, char result2){
       }
     }
   }
-  else if (setupFingerPrint==-1){//fingerprint not set
-    
-    
-     if(result2==1){//successfull enrollment
+  else if (setupFingerPrint == -1){//fingerprint not set
+      // successful enrollment
+     if(result2 == 1){
       //TODO: save result to eeprom
-      setupFingerPrint=1;
+      setupFingerPrint = 1;
       lcd_bottom ="Setup complete";
      }
-     else if(result2==0){//unsucessfull
+     // unsuccessful
+     else if(result2 == 0){
       lcd_bottomrow= "Try Again";
      }
     
@@ -206,11 +211,13 @@ void setupModeFunc(char result1, char result2){
   else{//everything is set, exit setup mode 
       //reset all setup variables for reuse
       //TODO: save keycode value to eeprom
-      setupMode= false;
-      setupKeyCode1=-1;
-      setupKeyCode2=-1;
+      setupMode = false;
+      setupKeyCode1= "";
+      setupKeyCode2= "";
       setupFingerPrint= -1;
-      authMode=true;
+
+      authMode = true;
+
       //TODO: send message to fingerprint slave to run authentication code
 
   }

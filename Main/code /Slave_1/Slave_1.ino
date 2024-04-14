@@ -37,7 +37,7 @@ Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
 
 // Define string with response to Master;
-char keyToSend=' ';
+char keyToSend= ' ';
 
 void setup() {
 
@@ -100,7 +100,7 @@ void requestEvent() {
   // }
   
   if(keyToSend != ' '){
-    byte response= (byte) keyToSend;
+    byte response = (byte) keyToSend;
     Wire.write(response);
     Serial.println("Sent");
     keyToSend= ' ';
@@ -119,7 +119,7 @@ void loop() {
   char key = keypad.getKey();
   
   if (key){
-    keyToSend= key;
+    keyToSend = key;
     
     Serial.println(keyToSend);
     
