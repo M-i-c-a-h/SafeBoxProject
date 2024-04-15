@@ -17,7 +17,7 @@ void setup()
 
 }
 
-void loop() { 
+void loop() {
   if(detect){getFingerprintID();}
   ////////////////////////////// retrieve message /////////////////////////
   if(Serial.available() > 0){

@@ -25,6 +25,7 @@
 
 bool setupMode= false;
 bool authMode= false;
+bool passcodeMatched = false;
 String setupKeyCode1="";
 String setupKeyCode2="";
 String stars="";
@@ -184,6 +185,8 @@ void setupModeFunc(char result1, char result2){
        lcd.clear();
        if (setupKeyCode2==setupKeyCode1){
         lcd_bottomrow= "PassCode Match";
+        passcodeMatched = true;
+        WriteToFingerprint();
         lcd_bottomrow=messages[3];
         stars="";
        }
@@ -197,15 +200,18 @@ void setupModeFunc(char result1, char result2){
   }
   else if (setupFingerPrint == -1){//fingerprint not set
       // successful enrollment
-     if(result2 == 1){
+     if(result2 == '1'){
       //TODO: save result to eeprom
       setupFingerPrint = 1;
       lcd_bottom ="Setup complete";
      }
-     // unsuccessful
-     else if(result2 == 0){
-      lcd_bottomrow= "Try Again";
+     else{
+         lcd_bottom = "some message";
      }
+     // unsuccessful
+//     else if(result2 == '-1'){
+//      lcd_bottomrow= "Try Again";
+//     }
     
   }
   else{//everything is set, exit setup mode 
@@ -242,6 +248,27 @@ void displayLcd(){
   }
 }
 
+void WriteToFingerprint(){
+    delay(2000);
+
+
+    if (setupMode){
+        Wire.beginTransmission(SLAVE_ADDR2);
+
+        Wire.write('A');
+        Wire.endTransmission();
+
+        Wire.beginTransmission(SLAVE_ADDR2);
+    }
+    else if(authMode ){
+        Wire.beginTransmission(SLAVE_ADDR2);
+
+        Wire.write('D');
+        Wire.endTransmission();
+
+        Wire.beginTransmission(SLAVE_ADDR2);
+    }
+}
 
 void example_operation(){
   //delay(2000);
