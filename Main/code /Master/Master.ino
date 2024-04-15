@@ -203,10 +203,10 @@ void setupModeFunc(char result1, char result2){
      if(result2 == '1'){
       //TODO: save result to eeprom
       setupFingerPrint = 1;
-      lcd_bottom ="Setup complete";
+      lcd_bottomrow ="Setup complete";
      }
      else{
-         lcd_bottom = "some message";
+         lcd_bottomrow = "some message";
      }
      // unsuccessful
 //     else if(result2 == '-1'){
@@ -233,6 +233,9 @@ void setupModeFunc(char result1, char result2){
   
 }
 
+void authModeFunc(char resultA, char resultB){
+
+}
 void displayLcd(){
   //we can move the text here
   //TODO:move text 

@@ -10,7 +10,7 @@
 
 // Include Arduino Wire library for I2C
 #include <Wire.h>
-
+#include <EEPROM.h>//to store into adruinos memory
 // Define Slave I2C Address
 #define SLAVE_ADDR 12
 
@@ -86,12 +86,7 @@ void receiveRequest() {
           ID_Num = EEPROM.read(0);
 
           // todo take off
-          if(ID_Num != 0){
-              Serial.println("MEMORY WAS NOT 0");
-              delay(2000);
-              ID_Num = 0;
-
-          }   // todo take off
+          Serial.println(ID_Num);
           ID_Num++; // id to be stored
       }
       // Authenticate()  // TODO: may take this off
@@ -133,7 +128,7 @@ void loop() {
 uint8_t getFingerprintEnroll() {
 
     int p = -1;
-    Serial.print("Waiting for valid finger to enroll as #");  Serial.println(id);  // trap 2  todo: send flag E
+    Serial.print("Waiting for valid finger to enroll as #");  Serial.println(ID_Num);  // trap 2  todo: send flag E
     FlagToSend = 'E';   //requestEvent();
 
     while (p != FINGERPRINT_OK) { // trap 3
@@ -180,7 +175,7 @@ uint8_t getFingerprintEnroll() {
     while (p != FINGERPRINT_NOFINGER) {
         p = finger.getImage();
     }
-    Serial.print("ID "); Serial.println(id);
+    Serial.print("ID "); Serial.println(ID_Num);
 
 
     p = -1;
@@ -220,7 +215,7 @@ uint8_t getFingerprintEnroll() {
     }
 
     // OK converted!
-    Serial.print("Creating model for #");  Serial.println(id);
+    Serial.print("Creating model for #");  Serial.println(ID_Num);
     FlagToSend = 'M';  // requestEvent();
 
     p = finger.createModel();
@@ -233,8 +228,8 @@ uint8_t getFingerprintEnroll() {
         return p;
     }
 
-    Serial.print("ID "); Serial.println(id);
-    p = finger.storeModel(id);
+    Serial.print("ID "); Serial.println(ID_Num);
+    p = finger.storeModel(ID_Num);
     if (p == FINGERPRINT_OK) {
         Serial.println("Stored!");      // todo: send flag
         FlagToSend = 'N';   //requestEvent();
