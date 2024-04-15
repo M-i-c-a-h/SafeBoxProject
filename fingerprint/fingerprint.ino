@@ -5,7 +5,7 @@ Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 const long interval = 1000;  // time interval
 const int serialPin = 1;  // for commuicating bewteen arduino 
-
+bool detect = true;
 void setup()
 {
   Serial.begin(9600);
@@ -18,7 +18,7 @@ void setup()
 }
 
 void loop() { 
-
+  if(detect){getFingerprintID();}
   ////////////////////////////// retrieve message /////////////////////////
   if(Serial.available() > 0){
     char receive = Serial.read();
@@ -26,10 +26,10 @@ void loop() {
       getFingerprintID();
     }
   }
-  else{
-    Serial.println("Waiting for detect Message \'D\'");
-    delay(5000);
-  }
+  // else{
+  //   Serial.println("Waiting for detect Message \'D\'");
+  //   delay(5000);
+  // }
   
 }
 
@@ -110,7 +110,7 @@ uint8_t getFingerprintID() {
   Serial.println("\nMatch found!");
   Serial.print("Found ID #"); Serial.print(finger.fingerID);
   Serial.print(" with confidence of "); Serial.println(finger.confidence);
-
+  detect = false;
   return finger.fingerID;
 }
 
