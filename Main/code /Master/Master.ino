@@ -30,18 +30,24 @@ String setupKeyCode1="";
 String setupKeyCode2="";
 String stars="";
 int setupFingerPrint = -1;
-
+String authModeKeyCode="";
+int authModeFingerPrint= -1;
 volatile int state= 1;
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;//lcd
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);//lcd
 String messages []= {"Set up your password",
                       "Setup KeyCode First",
                       "Enter KeyCode Again",
-                      "Enroll FingerPrint"};
+                      "Enroll FingerPrint",
+                      "PassCode Matched, Scan Fingerprint",
+                      "Access Granted",
+                      "Authentication Mode",
+                      "Enter KeyCode",
+                      "PassCode Mismatched"};
 String lcd_toprow= "";
 String lcd_bottomrow= "";
 long long lcd_start= 0; //to write to the lcd every one sec
-
+const int buzzer = 7;
 void storeFourDigitValue(int value) {
   // Ensure value is within the four-digit range
   if (value < 0 || value > 9999) {
@@ -57,7 +63,9 @@ void storeFourDigitValue(int value) {
 
 int readFourDigitValue() {
   byte highByte = EEPROM.read(0);
+
   byte lowByte = EEPROM.read(1);
+  
   if (highByte == 255 && lowByte == 255) {
         return -1; // Or another value that signifies "not stored"
     }
@@ -100,7 +108,8 @@ void setup() {
   
   // Setup serial monitor
   pinMode(13, OUTPUT);
- 
+  pinMode(buzzer, OUTPUT);
+  // tone(buzzer, 1000);
   Serial.begin(9600);
   Serial.println("I2C Master Demonstration");
   digitalWrite(13, HIGH);
@@ -122,16 +131,33 @@ void setup() {
     //TODO: send message to fingerprint slave to run authentication code
     authMode = true;
     lcd.clear();
-//    lcd_toprow= messages[2];
-//    lcd_bottomrow=messages[3];
+    lcd_toprow= messages[6];
+    lcd_bottomrow= messages[7];
+
   }
 }
 
 void loop() {
-  //example_operation();
  
   char result1 = request_Slave();//
   char result2 = request_Slave2();
+  switch(result1){
+    case '#':
+      lcd.clear();
+      lcd_toprow= messages[0];
+      lcd_bottomrow= messages[1];
+      setupKeyCode1= "";
+      setupKeyCode2= "";
+      setupFingerPrint= -1;
+      setupMode= true;
+      authMode= false;
+      authModeKeyCode="";
+      authModeFingerPrint= -1;
+      break;
+    default:
+      break;
+  }
+  //TODO: bypass commands if certain commands are received from keypad
 
   if (setupMode){
     setupModeFunc(result1, result2);
@@ -183,16 +209,18 @@ void setupModeFunc(char result1, char result2){
       if (setupKeyCode2.length()==4){
        //compare with setupKeyCode1
        lcd.clear();
+       stars="";
        if (setupKeyCode2==setupKeyCode1){
         lcd_bottomrow= "PassCode Match";
         passcodeMatched = true;
         WriteToFingerprint();
         lcd_bottomrow=messages[3];
-        stars="";
+        
        }
        else{
         lcd_bottomrow="PassCode Does not match restart";
-
+        setupKeyCode1= "";
+        setupKeyCode2= "";
        }
 
       }
@@ -204,27 +232,31 @@ void setupModeFunc(char result1, char result2){
       //TODO: save result to eeprom
       setupFingerPrint = 1;
       lcd_bottomrow ="Setup complete";
+      delay(2000);
      }
      else{
          lcd_bottomrow = "some message";
+         //TODO: handle different messages
      }
-     // unsuccessful
-//     else if(result2 == '-1'){
-//      lcd_bottomrow= "Try Again";
-//     }
+    
     
   }
   else{//everything is set, exit setup mode 
       //reset all setup variables for reuse
-      //TODO: save keycode value to eeprom
+      
+      storeFourDigitValue(setupKeyCode2.toInt());
       setupMode = false;
       setupKeyCode1= "";
       setupKeyCode2= "";
       setupFingerPrint= -1;
 
       authMode = true;
-
-      //TODO: send message to fingerprint slave to run authentication code
+      
+      
+      lcd.clear();
+      lcd_toprow= messages[6];
+      lcd_bottomrow= messages[7];
+      
 
   }
 
@@ -233,8 +265,61 @@ void setupModeFunc(char result1, char result2){
   
 }
 
-void authModeFunc(char resultA, char resultB){
+void authModeFunc(char result1, char result2){
+  if (authModeKeyCode.length()<4){
+    if(isdigit(result1)){
+      lcd.clear();
+      Serial.println("here");
 
+      // build access code from user
+      authModeKeyCode += result1;
+      stars+="*";
+      lcd_bottomrow=stars;
+      if (authModeKeyCode.length()==4){
+        lcd.clear();
+       //check if it matches value stored in eeprom
+       int passcode= readFourDigitValue();
+
+       Serial.println(passcode);
+       if (passcode==authModeKeyCode.toInt()){
+        lcd_bottomrow= messages[4];
+        WriteToFingerprint();
+       }
+       else {
+          authModeKeyCode= "";
+          lcd_bottomrow= messages[8];
+       }
+       stars="";
+      }
+    }
+  }
+  else if (authModeFingerPrint ==-1){
+    if(result2 == 'Q'){//Two-factor authentification sucessfull
+      
+      authModeFingerPrint = 1;
+      lcd_bottomrow =messages[5];
+      
+      //access granted
+      //Send current to relay
+      //
+
+
+     }
+     else{
+         lcd_bottomrow = "some message";
+         //TODO: handle different messages
+         if (result2=='P'){//no match found
+          authMode = true;
+          lcd.clear();
+          lcd_toprow= messages[6];
+          lcd_bottomrow= messages[7];
+
+         }
+         else{
+          lcd_bottomrow="unhandled";
+         }
+     }
+  }
 }
 void displayLcd(){
   //we can move the text here

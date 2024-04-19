@@ -119,6 +119,7 @@ void loop() {
   }
   else if(authMode){
     //TODO:run authentication code
+    
     getFingerprintID();  // returns UserID
   }
 }
