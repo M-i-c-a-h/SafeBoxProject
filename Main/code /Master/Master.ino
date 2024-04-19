@@ -279,7 +279,6 @@ void setupModeFunc(char result1, char result2){
       setupKeyCode1= "";
       setupKeyCode2= "";
       setupFingerPrint= -1;
-
       authMode = true;
 
       clearLCD(1,1);
