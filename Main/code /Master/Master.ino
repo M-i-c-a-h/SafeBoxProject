@@ -15,6 +15,7 @@
 #define SLAVE_ADDR2 12
 #include <LiquidCrystal.h>
 #include <EEPROM.h>//to store into adruinos memory
+
 // Define Slaves answer size
 
 
@@ -35,6 +36,7 @@ int authModeFingerPrint= -1;
 volatile int state= 1;
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;//lcd
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);//lcd
+
 String messages []= {"Set up your password",
                       "Setup KeyCode First",
                       "Enter KeyCode Again",
@@ -166,11 +168,8 @@ void loop() {
     authModeFunc(result1, result2);
   }
 
-
-
+  updateBottomRow(result2);
   displayLcd();
-  
-  
 
 }
 
@@ -215,7 +214,7 @@ void setupModeFunc(char result1, char result2){
         passcodeMatched = true;
         WriteToFingerprint();
         lcd_bottomrow=messages[3];
-        
+
        }
        else{
         lcd_bottomrow="PassCode Does not match restart";
@@ -238,8 +237,7 @@ void setupModeFunc(char result1, char result2){
          lcd_bottomrow = "some message";
          //TODO: handle different messages
      }
-    
-    
+
   }
   else{//everything is set, exit setup mode 
       //reset all setup variables for reuse
@@ -251,18 +249,12 @@ void setupModeFunc(char result1, char result2){
       setupFingerPrint= -1;
 
       authMode = true;
-      
-      
+
       lcd.clear();
       lcd_toprow= messages[6];
       lcd_bottomrow= messages[7];
-      
 
   }
-
-  
-
-  
 }
 
 void authModeFunc(char result1, char result2){
@@ -294,7 +286,7 @@ void authModeFunc(char result1, char result2){
     }
   }
   else if (authModeFingerPrint ==-1){
-    if(result2 == 'Q'){//Two-factor authentification sucessfull
+    if(result2 == 'Q'){         //Two-factor authentication successful
       
       authModeFingerPrint = 1;
       lcd_bottomrow =messages[5];
@@ -302,7 +294,6 @@ void authModeFunc(char result1, char result2){
       //access granted
       //Send current to relay
       //
-
 
      }
      else{
@@ -321,12 +312,57 @@ void authModeFunc(char result1, char result2){
      }
   }
 }
+void updateBottomRow(char flag){
+  switch(flag){
+      case 'E':
+          lcd_bottomrow = "Waiting for valid finger to enroll new user";
+          break;
+      case 'F':
+          lcd_bottomrow = "Image taken";
+          break;
+      case 'G':
+          lcd_bottomrow = ".";
+          break;
+      case 'H':
+          lcd_bottomrow = "Unknown error";
+          break;
+      case 'I':
+          lcd_bottomrow = "Image converted";
+          break;
+      case 'J':
+          lcd_bottomrow = "Image too messy";
+          break;
+      case 'K':
+          lcd_bottomrow = "Remove finger";
+          break;
+      case 'L':
+          lcd_bottomrow = "Place same finger again";
+          break;
+      case 'M':
+          lcd_bottomrow = "Creating model for new user";
+          break;
+      case 'N':
+          lcd_bottomrow = "Prints matched!";
+          break;
+      case 'O':
+          lcd_bottomrow = "No finger detected";
+          break;
+      case 'P':
+          lcd_bottomrow = "No match found!";
+          break;
+      case 'Q':
+          lcd_toprow = "***Authentication completed***";
+          lcd_bottomrow = "Access granted!!!";
+          break;
+      default:
+      break;
+  }
+}
 void displayLcd(){
   //we can move the text here
   //TODO:move text 
   if(millis()-lcd_start>=1000){
 
-    
     lcd.setCursor(0,0);
     lcd.print(lcd_toprow);
     lcd.setCursor(0, 1);
@@ -338,7 +374,6 @@ void displayLcd(){
 
 void WriteToFingerprint(){
     delay(2000);
-
 
     if (setupMode){
         Wire.beginTransmission(SLAVE_ADDR2);
@@ -356,118 +391,4 @@ void WriteToFingerprint(){
 
         Wire.beginTransmission(SLAVE_ADDR2);
     }
-}
-
-void example_operation(){
-  //delay(2000);
-  //digitalWrite(11, state);
-  delay(2000);
-  char x = 4;
-
-  // read data from Monitor
-  while (Serial.available()>0){
-    delay(3);
-    x= Serial.read();
-    Serial.println("From Monitor:");
-    Serial.println(x);
-    if (x== '0'){
-      Wire.beginTransmission(SLAVE_ADDR);
-  
-      Wire.write(x);
-      Wire.endTransmission();
-        
-      Wire.beginTransmission(SLAVE_ADDR);
-    }
-    else if(x=='1'){
-      Wire.beginTransmission(SLAVE_ADDR);
-  
-      Wire.write(x);
-      Wire.endTransmission();
-        
-      Wire.beginTransmission(SLAVE_ADDR);
-    }
-    else if(x=='5'){
-      Wire.beginTransmission(SLAVE_ADDR2);
-  
-      Wire.write('0');
-      Wire.endTransmission();
-        
-      Wire.beginTransmission(SLAVE_ADDR2);
-    }
-    else if(x=='7'){
-      Wire.beginTransmission(SLAVE_ADDR2);
-  
-      Wire.write('1');
-      Wire.endTransmission();
-        
-      Wire.beginTransmission(SLAVE_ADDR2);
-    }
-    break;
-  }
-
-
-  Serial.println("Write data to slave");
-  
-  // Write a charatre to the Slave
-  // Wire.beginTransmission(SLAVE_ADDR);
-  
-  // Wire.write(x);
-  // Wire.endTransmission();
-    
-  // Wire.beginTransmission(SLAVE_ADDR);
-  
-  // Wire.write(x);
-  // Wire.endTransmission();
-  Serial.println("Receive data");
-  
-  // Read response from Slave
-  // Read back 5 characters
-  Wire.requestFrom(SLAVE_ADDR2,ANSWERSIZE);
-  
-  // Add characters to string
-
-  String response = "";
-  String result = "";
-  while (Wire.available()) {
-
-      char b = Wire.read();
-      result += b;  
-      
-  } 
-  
-
-  if(result == "0000"){
-    digitalWrite(13, LOW);
-  }
-  
-  Serial.print("result is ");
-  Serial.println(result);
-  // Print to Serial Monitor
-  
-  Serial.println("Receive data 2");
-  
-  // Read response from Slave
-  // Read back 5 characters
-  //Wire.flush()
-  Wire.requestFrom(SLAVE_ADDR,ANSWERSIZE);
-  
-  // Add characters to string
-
-  //String response = "";
-  String result2 = "";
-  while (Wire.available()) {
-
-      char b = Wire.read();
-      result2 += b;  
-      
-  } 
-  
-
-  if(result2 == "0000"){
-    digitalWrite(13, HIGH);
-  }
-  Serial.print("result2 is ");
-  Serial.println(result2);
-  // Print to Serial Monitor
-
 }
