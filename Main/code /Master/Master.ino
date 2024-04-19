@@ -23,7 +23,8 @@
 
 #define ANSWERSIZE 5
 
-
+int buzzerState= 0;
+long buzzerStart= 0;
 bool setupMode= false;
 bool authMode= false;
 bool passcodeMatched = false;
@@ -99,6 +100,7 @@ char request_Slave2(){
     char b = Wire.read();
     
     result = b;
+    // updateBottomRow(result);
    
   } 
   return result;
@@ -111,7 +113,7 @@ void setup() {
   // Setup serial monitor
   pinMode(13, OUTPUT);
   pinMode(buzzer, OUTPUT);
-  // tone(buzzer, 1000);
+ 
   Serial.begin(9600);
   Serial.println("I2C Master Demonstration");
   digitalWrite(13, HIGH);
@@ -122,7 +124,7 @@ void setup() {
   int passcode= readFourDigitValue();
   if (passcode == -1){//no password on system yet
     setupMode = true;
-    lcd.clear();
+    clearLCD(1,1);
     lcd_toprow= messages[0];
     lcd_bottomrow= messages[1];
 
@@ -132,7 +134,8 @@ void setup() {
   else{
     //TODO: send message to fingerprint slave to run authentication code
     authMode = true;
-    lcd.clear();
+    clearLCD(1,1);
+
     lcd_toprow= messages[6];
     lcd_bottomrow= messages[7];
 
@@ -143,9 +146,14 @@ void loop() {
  
   char result1 = request_Slave();//
   char result2 = request_Slave2();
+  if (result1 != 0 ){
+    tone(buzzer, 1000);
+    buzzerState= 1;
+    buzzerStart= millis();
+  }
   switch(result1){
     case '#':
-      lcd.clear();
+      clearLCD(1,1);
       lcd_toprow= messages[0];
       lcd_bottomrow= messages[1];
       setupKeyCode1= "";
@@ -168,20 +176,44 @@ void loop() {
     authModeFunc(result1, result2);
   }
 
-  updateBottomRow(result2);
-  displayLcd();
+  
+  displayLcd(0);
+  updateBuzzer();
 
 }
 
 
+void updateBuzzer(){
+  if(buzzerState== 1 && millis()-buzzerStart>=500){
+    buzzerState= 0;
+    buzzerStart= 0;
+    noTone(buzzer);
+  }
+  else if(buzzerState== 2 && millis()-buzzerStart>=500){
+    buzzerState= 9;
+    buzzerStart= 0;
+    noTone(buzzer);
+  }
+  else if(buzzerState==9 && millis()-buzzerStart>=500){
+    buzzerState= 11;
+    buzzerStart= 0;
+    tone(buzzer, 1000);
+  }
+  else if(buzzerState== 11 && millis()-buzzerStart>=500){
+    buzzerState= 0;
+    buzzerStart= 0;
+    noTone(buzzer);
+  }
 
+  
+}
 
 void setupModeFunc(char result1, char result2){
   //TODO: add option to restart setup at anypoint during setup process
   if(setupKeyCode1.length()<4){//keyCode not set
    
     if(isdigit(result1)){
-      lcd.clear();
+      clearLCD(0,1);
       Serial.println("here");
 
       // build access code from user
@@ -189,7 +221,7 @@ void setupModeFunc(char result1, char result2){
       stars+="*";
       lcd_bottomrow=stars;
       if (setupKeyCode1.length()==4){
-        lcd.clear();
+       clearLCD(0,1);
        lcd_bottomrow=messages[2];
        stars="";
       }
@@ -199,7 +231,7 @@ void setupModeFunc(char result1, char result2){
   // keyCode not confirmed
   else if(setupKeyCode2.length()<4){
     if(isdigit(result1)){
-      lcd.clear();
+      clearLCD(0,1);
       Serial.println("here");
       
       setupKeyCode2+=result1;
@@ -207,7 +239,7 @@ void setupModeFunc(char result1, char result2){
       lcd_bottomrow=stars;
       if (setupKeyCode2.length()==4){
        //compare with setupKeyCode1
-       lcd.clear();
+      clearLCD(0,1);
        stars="";
        if (setupKeyCode2==setupKeyCode1){
         lcd_bottomrow= "PassCode Match";
@@ -250,66 +282,85 @@ void setupModeFunc(char result1, char result2){
 
       authMode = true;
 
-      lcd.clear();
+      clearLCD(1,1);
       lcd_toprow= messages[6];
       lcd_bottomrow= messages[7];
 
   }
 }
 
+void clearLCD(bool top, bool bottom){
+ 
+  if(top){
+    lcd.setCursor(0, 0);
+  
+    lcd.print("                ");
+  }
+  if (bottom){
+    lcd.setCursor(0, 1);
+  
+    lcd.print("                ");
+  }
+   
+}
 void authModeFunc(char result1, char result2){
   if (authModeKeyCode.length()<4){
     if(isdigit(result1)){
-      lcd.clear();
-      Serial.println("here");
+      clearLCD(0, 1);
 
       // build access code from user
       authModeKeyCode += result1;
       stars+="*";
       lcd_bottomrow=stars;
       if (authModeKeyCode.length()==4){
-        lcd.clear();
+        
        //check if it matches value stored in eeprom
        int passcode= readFourDigitValue();
 
        Serial.println(passcode);
        if (passcode==authModeKeyCode.toInt()){
         lcd_bottomrow= messages[4];
+        displayLcd(1);
         WriteToFingerprint();
        }
        else {
           authModeKeyCode= "";
           lcd_bottomrow= messages[8];
+          tone(buzzer, 1000);
+          buzzerState= 2;
+          buzzerStart= millis();
        }
        stars="";
       }
     }
   }
   else if (authModeFingerPrint ==-1){
+    updateBottomRow(result2);
     if(result2 == 'Q'){         //Two-factor authentication successful
       
       authModeFingerPrint = 1;
-      lcd_bottomrow =messages[5];
-      
-      //access granted
-      //Send current to relay
-      //
+     
 
      }
      else{
-         lcd_bottomrow = "some message";
+         //lcd_bottomrow = "some message";
          //TODO: handle different messages
+         
          if (result2=='P'){//no match found
           authMode = true;
-          lcd.clear();
+          clearLCD(0, 1);
           lcd_toprow= messages[6];
-          lcd_bottomrow= messages[7];
-
+          //lcd_bottomrow= messages[7];
+          displayLcd(1);
+          delay(2000);
+          resetSystem();
          }
          else{
-          lcd_bottomrow="unhandled";
+          //lcd_bottomrow="unhandled";
          }
      }
+     
+     //updateBottomRow(result2);
   }
 }
 void updateBottomRow(char flag){
@@ -358,10 +409,10 @@ void updateBottomRow(char flag){
       break;
   }
 }
-void displayLcd(){
+void displayLcd(bool override){
   //we can move the text here
   //TODO:move text 
-  if(millis()-lcd_start>=1000){
+  if(override || millis()-lcd_start>=500){
 
     lcd.setCursor(0,0);
     lcd.print(lcd_toprow);
@@ -391,4 +442,9 @@ void WriteToFingerprint(){
 
         Wire.beginTransmission(SLAVE_ADDR2);
     }
+}
+void resetSystem(){
+  authModeFingerPrint ==-1;
+  authModeKeyCode="";
+  lcd_bottomrow = messages[7];
 }

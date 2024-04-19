@@ -255,7 +255,7 @@ uint8_t getFingerprintID() {
     switch (p) {
         case FINGERPRINT_OK:
             Serial.println("Image taken");  // todo: return flag to master
-            FlagToSend = 'F';   //requestEvent();
+            //FlagToSend = 'F';   //requestEvent();
             break;
         case FINGERPRINT_NOFINGER:
             Serial.println("No finger detected"); // todo: return flag to master
@@ -273,10 +273,10 @@ uint8_t getFingerprintID() {
     switch (p) {
         case FINGERPRINT_OK:
             Serial.println("Image converted");  // todo: return flag to master
-            FlagToSend = 'I';   //requestEvent();
+            //FlagToSend = 'I';   //requestEvent();
             break;
         case FINGERPRINT_IMAGEMESS:
-            Serial.println("Image too messy");  // todo: return flag to master
+            //Serial.println("Image too messy");  // todo: return flag to master
             FlagToSend = 'J';   //requestEvent();
             return p;
         default:
