@@ -25,9 +25,11 @@
 
 int buzzerState= 0;
 long buzzerStart= 0;
+long openStart = 0;
 bool setupMode= false;
 bool authMode= false;
 bool passcodeMatched = false;
+bool doorOpen = false;
 String setupKeyCode1="";
 String setupKeyCode2="";
 String stars="";
@@ -35,18 +37,20 @@ int setupFingerPrint = -1;
 String authModeKeyCode="";
 int authModeFingerPrint= -1;
 volatile int state= 1;
+int trials;
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;//lcd
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);//lcd
 
-String messages []= {"Set up your password",
-                      "Setup KeyCode First",
+String messages []= { "Set up your password",
+                      "Input your KeyCode",
                       "Enter KeyCode Again",
                       "Enroll FingerPrint",
                       "PassCode Matched, Scan Fingerprint",
                       "Access Granted",
                       "Authentication Mode",
                       "Enter KeyCode",
-                      "PassCode Mismatched"};
+                      "PassCode Mismatched"
+                      };
 String lcd_toprow= "";
 String lcd_bottomrow= "";
 long long lcd_start= 0; //to write to the lcd every one sec
@@ -126,28 +130,25 @@ void setup() {
 }
 
 void systemSetup(){
-
+  closeFingerprint();   // shutdown fingerprint if on
   int passcode= readFourDigitValue();
   if (passcode == -1){//no password on system yet
     setupMode = true;
     clearLCD(1,1);
     lcd_toprow= messages[0];
     lcd_bottomrow= messages[1];
-
     //TODO: send message to fingerprint slave to run enrollment code
     
   }
   else{
     //TODO: send message to fingerprint slave to run authentication code
-    authMode= false;
-    setupMode= false;
-    closeFingerprint();
     authMode = true;
     clearLCD(1,1);
     lcd_toprow= messages[6];
     lcd_bottomrow= messages[7];
-
+    trials = 0;
   }
+  
 }
 void loop() {
  
@@ -184,15 +185,48 @@ void loop() {
     authModeFunc(result1, result2);
   }
 
-  
+  // if door is open ->
+  // check if time interval has elapsed -> close door
+  if(doorOpen){
+    // send current to solenoid
+    if(millis() - openStart >= 5000){
+      doorOpen = false;
+      closeSesame();
+    }
+  }
   displayLcd(0);
   updateBuzzer();
 
+
+  // if user fails 3 consecutive times -> buzzer && message
+  if(trails > 3){
+    goCrazy();
+  }
 }
 
+void goCrazy(){
+  // turn buzzer on until door is open
+  // security breech message
+}
+
+void openSesame(){
+    // send current to solenoid
+  if(doorOpen){
+    openStart = millis();
+    // buzzer sound
+    // turn redLed off && greenLed on
+  }
+}
+
+void closeSesame(){
+    // send current to solenoid
+    openStart = 0;
+    // buzzer sound
+    // turn redLed on && greenLed off 
+}
 
 void updateBuzzer(){
-  if(buzzerState== 1 && millis()-buzzerStart>=500){
+  if(buzzerState == 1 && millis()-buzzerStart>=500){
     buzzerState= 0;
     buzzerStart= 0;
     noTone(buzzer);
@@ -247,7 +281,7 @@ void setupModeFunc(char result1, char result2){
       lcd_bottomrow=stars;
       if (setupKeyCode2.length()==4){
        //compare with setupKeyCode1
-      clearLCD(0,1);
+       clearLCD(0,1);
        stars="";
        if (setupKeyCode2==setupKeyCode1){
         lcd_bottomrow= "PassCode Match";
@@ -257,7 +291,14 @@ void setupModeFunc(char result1, char result2){
 
        }
        else{
-        lcd_bottomrow="PassCode Does not match restart";
+        lcd_bottomrow = "PassCode Does not match";
+        delay(2000);
+        clearLCD(0,1);
+        lcd_bottomrow = "Restarting.....";
+        displayLcd(1);
+        delay(2000);
+        clearLCD(0,1);
+        lcd_bottomrow = messages[7];
         setupKeyCode1= "";
         setupKeyCode2= "";
        }
@@ -329,6 +370,7 @@ void authModeFunc(char result1, char result2){
         delay(2000);
         WriteToFingerprint();
        }
+       // passcode mismatched
        else {
           authModeKeyCode= "";
           lcd_bottomrow= messages[8];
@@ -339,18 +381,19 @@ void authModeFunc(char result1, char result2){
           tone(buzzer, 1000);
           buzzerState= 2;
           buzzerStart= millis();
+          trials++;   // increament wrong trail count
        }
        stars="";
       }
     }
   }
-  else if (authModeFingerPrint ==-1){
+  else if (authModeFingerPrint == -1){
     updateBottomRow(result2);
     if(result2 == 'Q'){         //Two-factor authentication successful
-      
       authModeFingerPrint = 1;
-     
-
+      doorOpen = true;
+      openSesame();
+      trials = 0;
      }
      else{
          //lcd_bottomrow = "some message";
@@ -466,11 +509,8 @@ void WriteToFingerprint(){
     }
 }
 void resetSystem(){
-  authMode = false;
-  setupMode = false;
-  WriteToFingerprint();
   systemSetup();
   authModeFingerPrint ==-1;
   authModeKeyCode="";
-  lcd_bottomrow = messages[7];
+  lcd_bottomrow = messages[7]; // may not be needed
 }
