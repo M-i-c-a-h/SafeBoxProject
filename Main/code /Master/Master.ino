@@ -22,7 +22,7 @@
 
 
 #define ANSWERSIZE 5
-
+int relay= 9;
 int buzzerState= 0;
 long buzzerStart= 0;
 long openStart = 0;
@@ -117,6 +117,7 @@ void setup() {
   // Setup serial monitor
   pinMode(13, OUTPUT);
   pinMode(buzzer, OUTPUT);
+  pinMode(relay, OUTPUT);
  
   Serial.begin(9600);
   Serial.println("I2C Master Demonstration");
@@ -125,7 +126,7 @@ void setup() {
   lcd.begin(16, 2);
   // Print a message to the LCD.
   //lcd.print("hello, world!");
-
+  digitalWrite(relay, HIGH);
   systemSetup();
 }
 
@@ -196,12 +197,19 @@ void loop() {
   }
   displayLcd(0);
   updateBuzzer();
+<<<<<<< Updated upstream
 
 
   // if user fails 3 consecutive times -> buzzer && message
   if(trails > 3){
     goCrazy();
   }
+=======
+  // digitalWrite(relay, HIGH);
+  // delay(2000);
+  // digitalWrite(relay, LOW);
+  // delay(2000);
+>>>>>>> Stashed changes
 }
 
 void goCrazy(){
@@ -228,22 +236,22 @@ void closeSesame(){
 void updateBuzzer(){
   if(buzzerState == 1 && millis()-buzzerStart>=500){
     buzzerState= 0;
-    buzzerStart= 0;
+    buzzerStart= millis();
     noTone(buzzer);
   }
   else if(buzzerState== 2 && millis()-buzzerStart>=500){
     buzzerState= 9;
-    buzzerStart= 0;
+    buzzerStart= millis();
     noTone(buzzer);
   }
   else if(buzzerState==9 && millis()-buzzerStart>=500){
     buzzerState= 11;
-    buzzerStart= 0;
+    buzzerStart= millis();
     tone(buzzer, 1000);
   }
   else if(buzzerState== 11 && millis()-buzzerStart>=500){
     buzzerState= 0;
-    buzzerStart= 0;
+    buzzerStart= millis();
     noTone(buzzer);
   }
 
