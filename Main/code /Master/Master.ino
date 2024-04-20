@@ -139,7 +139,9 @@ void systemSetup(){
   }
   else{
     //TODO: send message to fingerprint slave to run authentication code
-    WriteToFingerprint();
+    authMode= false;
+    setupMode= false;
+    closeFingerprint();
     authMode = true;
     clearLCD(1,1);
     lcd_toprow= messages[6];
@@ -161,6 +163,7 @@ void loop() {
       clearLCD(1,1);
       lcd_toprow= messages[0];
       lcd_bottomrow= messages[1];
+      closeFingerprint();
       setupKeyCode1= "";
       setupKeyCode2= "";
       setupFingerPrint= -1;
@@ -215,7 +218,7 @@ void updateBuzzer(){
 
 void setupModeFunc(char result1, char result2){
   //TODO: add option to restart setup at anypoint during setup process
-  if(setupKeyCode1.length()<4){//keyCode not set
+  if(setupKeyCode1.length()<4){ //keyCode not set
    
     if(isdigit(result1)){
       clearLCD(0,1);
@@ -427,7 +430,13 @@ void displayLcd(bool override){
     lcd_start=millis();
   }
 }
+void closeFingerprint(){
+  Wire.beginTransmission(SLAVE_ADDR2);
+  Wire.write('C');
+  Wire.endTransmission();
 
+  Wire.beginTransmission(SLAVE_ADDR2);
+}
 void WriteToFingerprint(){
     //delay(2000);
 

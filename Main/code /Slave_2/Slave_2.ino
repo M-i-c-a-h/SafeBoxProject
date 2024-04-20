@@ -106,7 +106,7 @@ void requestEvent() {
     if(FlagToSend != ' '){
         byte response = (byte) FlagToSend;
         Wire.write(response);       //TODO: send flag to master
-        Serial.println("Sent");
+        //Serial.println("Sent");
         FlagToSend = ' ';
     }
 
@@ -131,12 +131,12 @@ void loop() {
 
 ///***************************************************[ ENROLL ]********************************************************
 uint8_t getFingerprintEnroll() {
-
+    
     int p = -1;
     Serial.print("Waiting for valid finger to enroll as #");  Serial.println(ID_Num);  // trap 2  todo: send flag E
     FlagToSend = 'E';   //requestEvent();
 
-    while (p != FINGERPRINT_OK) { // trap 3
+    while (p != FINGERPRINT_OK && setupMode) { // trap 3
         p = finger.getImage();
         switch (p) {
             case FINGERPRINT_OK:
@@ -144,7 +144,7 @@ uint8_t getFingerprintEnroll() {
                 FlagToSend = 'F';   //requestEvent();
                 break;
             case FINGERPRINT_NOFINGER:
-                Serial.print("."); // trap 4  todo: send flag
+                //Serial.print("."); // trap 4  todo: send flag
                 //FlagToSend = 'G';   //requestEvent();
                 break;
             default:
@@ -177,7 +177,7 @@ uint8_t getFingerprintEnroll() {
 
     delay(2000);
     p = 0;
-    while (p != FINGERPRINT_NOFINGER) {
+    while (p != FINGERPRINT_NOFINGER && setupMode) {
         p = finger.getImage();
     }
     Serial.print("ID "); Serial.println(ID_Num);
@@ -187,7 +187,7 @@ uint8_t getFingerprintEnroll() {
     Serial.println("Place same finger again");  // todo: send flag
     FlagToSend = 'L';  // requestEvent();
 
-    while (p != FINGERPRINT_OK) { // trap 9
+    while (p != FINGERPRINT_OK && setupMode) { // trap 9
         p = finger.getImage();
         switch (p) {
             case FINGERPRINT_OK: // trap 10
