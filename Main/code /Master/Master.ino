@@ -203,19 +203,15 @@ void loop() {
   displayLcd(0);
   //delay(800);
   updateBuzzer();
-<<<<<<< Updated upstream
-
 
   // if user fails 3 consecutive times -> buzzer && message
   if(trials > 3){
     goCrazy();
   }
-=======
   // digitalWrite(relay, HIGH);
   // delay(2000);
   // digitalWrite(relay, LOW);
   // delay(2000);
->>>>>>> Stashed changes
 }
 
 void goCrazy(){
@@ -235,6 +231,8 @@ void openSesame(){
 void closeSesame(){
     // send current to solenoid
     openStart = 0;
+    resetSystem();
+    displayLcd(1);
     // buzzer sound
     // turn redLed on && greenLed off 
 }
@@ -406,7 +404,7 @@ void authModeFunc(char result1, char result2){
     if(result2 == 'Q'){         //Two-factor authentication successful
       authModeFingerPrint = 1;
       doorOpen = true;
-      openSesame();
+      //openSesame();
       trials = 0;
      }
      else{
