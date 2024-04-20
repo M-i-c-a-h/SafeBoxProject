@@ -149,7 +149,7 @@ uint8_t getFingerprintEnroll() {
                 break;
             default:
                 Serial.println("Unknown error");  // todo: send flag
-                FlagToSend = 'H';   //requestEvent();
+                FlagToSend = 'E';   //requestEvent();
                 break;
         }
     }

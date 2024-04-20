@@ -42,7 +42,9 @@ int authModeFingerPrint= -1;
 volatile int state= 1;
 int trials = 0;
 int iCursor = 0;
-
+int iCursor1 = 0;
+int iCursor2 = 0;
+int count = 1;
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;//lcd
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);//lcd
 
@@ -173,6 +175,7 @@ void loop() {
   switch(result1){
     case 'A':
       clearLCD(1,1);
+      iCursor1=iCursor2=0;
       lcd_toprow= messages[0];
       lcd_bottomrow= messages[1];
       closeFingerprint();
@@ -183,6 +186,12 @@ void loop() {
       authMode= false;
       authModeKeyCode="";
       authModeFingerPrint= -1;
+      break;
+
+      case 'C':
+      clearLCD(1,1);
+      iCursor1=iCursor2=0;
+      resetSystem();
       break;
     default:
       break;
@@ -213,6 +222,13 @@ void loop() {
   // if user fails 3 consecutive times -> buzzer && message
   if(trials > 2){
     //noTone(buzzer);
+    if(count == 1){
+      clearLCD(1,1);
+      iCursor1 = iCursor2 = 0;
+      lcd_toprow = "SECURITY BREACH!!!";
+      displayLcd(1);
+      count++;
+    }
     goCrazy();
   }
   else if(trials == 0){
@@ -228,8 +244,6 @@ void loop() {
 }
 
 void goCrazy(){
-  lcd_toprow = "SECURITY BREACH!!!";
-  displayLcd(1);
   tone(buzzer2, 500);
   // turn buzzer on until door is open
   // security breech message
@@ -241,7 +255,7 @@ void openSesame(){
     openStart = millis();
     // buzzer sound
     noTone(buzzer2);
-    //tone(buzzer,1000);
+    tone(buzzer,1000);
     digitalWrite(relay, LOW);
     resetSystem();
     // turn redLed off && greenLed on
@@ -253,10 +267,13 @@ void closeSesame(){
     openStart = 0;
     lcd_toprow= messages[6];
     lcd_bottomrow= messages[7];
+    clearLCD(1,1);
+    iCursor1=iCursor2=0;
     displayLcd(1);
     noTone(buzzer);
     noTone(buzzer2);
     digitalWrite(relay, HIGH);
+    
 
     // buzzer sound
     // turn redLed on && greenLed off 
@@ -300,9 +317,10 @@ void setupModeFunc(char result1, char result2){
       stars+="*";
       lcd_bottomrow=stars;
       if (setupKeyCode1.length()==4){
-       clearLCD(0,1);
-       lcd_bottomrow=messages[2];
-       stars="";
+        clearLCD(1,1);
+        iCursor1=iCursor2=0;
+        lcd_bottomrow=messages[2];
+        stars="";
       }
     }
     
@@ -324,16 +342,24 @@ void setupModeFunc(char result1, char result2){
         lcd_bottomrow= "PassCode Match";
         passcodeMatched = true;
         WriteToFingerprint();
-        lcd_bottomrow=messages[3];
+        clearLCD(1,1);
+        iCursor1=iCursor2=0;
 
        }
        else{
-        lcd_bottomrow = "PassCode Does not match";
+        clearLCD(1,1);
+        iCursor1=iCursor2=0;
+        lcd_bottomrow = "Keycode Mismatch";
+        stars = "";
+        displayLcd(1);
         delay(2000);
         clearLCD(0,1);
+        iCursor1=iCursor2=0;
+        stars = "";
         lcd_bottomrow = "Restarting.....";
         displayLcd(1);
         delay(2000);
+        stars = "";
         clearLCD(0,1);
         lcd_bottomrow = messages[7];
         setupKeyCode1= "";
@@ -401,11 +427,14 @@ void authModeFunc(char result1, char result2){
        int passcode= readFourDigitValue();
 
        Serial.println(passcode);
-       if (passcode==authModeKeyCode.toInt()){
+       if (passcode==authModeKeyCode.toInt()){//pascode match
         lcd_bottomrow= messages[4];
         displayLcd(1);
         delay(2000);
+        clearLCD(1,1);
+        iCursor1=iCursor2=0;
         WriteToFingerprint();
+
         Serial.println("fingerprint ready: ");
         authModeFingerPrint = -1; //for sanity
 
@@ -433,6 +462,8 @@ void authModeFunc(char result1, char result2){
       authModeFingerPrint = 1;
       Serial.println("here");
       doorOpen = true;
+      clearLCD(1,1);
+      iCursor1= iCursor2=0;
       openSesame();
       trials = 0;
      }
@@ -460,6 +491,7 @@ void authModeFunc(char result1, char result2){
   }
 }
 void updateBottomRow(char flag){
+
   switch(flag){
       case 'E':
           lcd_bottomrow = "Waiting for valid finger to enroll new user";
@@ -508,9 +540,10 @@ void updateBottomRow(char flag){
 void displayLcd(bool override){
   //we can move the text here
   //TODO:move text 
-  if(doorOpen){
+  if(doorOpen){ 
     lcd_toprow= messages[5];
     lcd_bottomrow= messages[9];
+    
   }
   if(override || millis()-lcd_start>=500){
     //iCursor = 0;
@@ -523,7 +556,7 @@ void displayLcd(bool override){
     else{
       lcd.print(lcd_toprow);
       //clearLCD(1,0);
-      //scroll((lcd_toprow + "  "),0);
+      scrollText((lcd_toprow + "  "),0,iCursor1);
     }
     
     lcd.setCursor(0, 1);
@@ -535,7 +568,7 @@ void displayLcd(bool override){
     else{
       lcd.print(lcd_bottomrow);
       //clearLCD(0,1);
-      //scrollText((lcd_bottomrow + "  "),1);
+      scrollText((lcd_bottomrow + "  "),1,iCursor2);
     }
     //lcd.print(lcd_bottomrow);
     //scrollText(lcd_bottomrow,1);
@@ -578,15 +611,22 @@ void WriteToFingerprint(){
     }
 }
 void resetSystem(){
+  setupKeyCode1= "";
+  setupKeyCode2= "";
+  setupFingerPrint= -1;
+  setupMode = false;
+  authMode = false;
   systemSetup();
   authModeFingerPrint ==-1;
   authModeKeyCode="";
+  stars = "";
+  count = 1;
   lcd_bottomrow = messages[7]; // may not be needed
 }
 
 
 // control scrolling of text > 16 characters
-void scrollText(String text, int level) {
+void scrollText(String text, int level, int& iCursor) {
   int lenOfText = text.length();
 
   // Reset variable
