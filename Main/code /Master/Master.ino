@@ -120,7 +120,13 @@ void setup() {
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
   // Print a message to the LCD.
-  lcd.print("hello, world!");
+  //lcd.print("hello, world!");
+
+  systemSetup();
+}
+
+void systemSetup(){
+
   int passcode= readFourDigitValue();
   if (passcode == -1){//no password on system yet
     setupMode = true;
@@ -133,15 +139,14 @@ void setup() {
   }
   else{
     //TODO: send message to fingerprint slave to run authentication code
+    WriteToFingerprint();
     authMode = true;
     clearLCD(1,1);
-
     lcd_toprow= messages[6];
     lcd_bottomrow= messages[7];
 
   }
 }
-
 void loop() {
  
   char result1 = request_Slave();//
@@ -152,7 +157,7 @@ void loop() {
     buzzerStart= millis();
   }
   switch(result1){
-    case '#':
+    case 'A':
       clearLCD(1,1);
       lcd_toprow= messages[0];
       lcd_bottomrow= messages[1];
@@ -258,6 +263,7 @@ void setupModeFunc(char result1, char result2){
     }
   }
   else if (setupFingerPrint == -1){//fingerprint not set
+    updateBottomRow(result2);
       // successful enrollment
      if(result2 == '1'){
       //TODO: save result to eeprom
@@ -265,10 +271,7 @@ void setupModeFunc(char result1, char result2){
       lcd_bottomrow ="Setup complete";
       delay(2000);
      }
-     else{
-         lcd_bottomrow = "some message";
-         //TODO: handle different messages
-     }
+     
 
   }
   else{//everything is set, exit setup mode 
@@ -320,11 +323,16 @@ void authModeFunc(char result1, char result2){
        if (passcode==authModeKeyCode.toInt()){
         lcd_bottomrow= messages[4];
         displayLcd(1);
+        delay(2000);
         WriteToFingerprint();
        }
        else {
           authModeKeyCode= "";
           lcd_bottomrow= messages[8];
+          displayLcd(1);
+          delay(1000);
+          clearLCD(0,1);
+          lcd_bottomrow = messages[7];
           tone(buzzer, 1000);
           buzzerState= 2;
           buzzerStart= millis();
@@ -345,7 +353,7 @@ void authModeFunc(char result1, char result2){
          //lcd_bottomrow = "some message";
          //TODO: handle different messages
          
-         if (result2=='P'){//no match found
+         if (result2 == 'P'){ //no match found
           authMode = true;
           clearLCD(0, 1);
           lcd_toprow= messages[6];
@@ -354,9 +362,7 @@ void authModeFunc(char result1, char result2){
           delay(2000);
           resetSystem();
          }
-         else{
-          //lcd_bottomrow="unhandled";
-         }
+         
      }
      
      //updateBottomRow(result2);
@@ -423,7 +429,7 @@ void displayLcd(bool override){
 }
 
 void WriteToFingerprint(){
-    delay(2000);
+    //delay(2000);
 
     if (setupMode){
         Wire.beginTransmission(SLAVE_ADDR2);
@@ -441,8 +447,20 @@ void WriteToFingerprint(){
 
         Wire.beginTransmission(SLAVE_ADDR2);
     }
+    else{
+      Wire.beginTransmission(SLAVE_ADDR2);
+
+      Wire.write('C');
+      Wire.endTransmission();
+
+      Wire.beginTransmission(SLAVE_ADDR2);
+    }
 }
 void resetSystem(){
+  authMode = false;
+  setupMode = false;
+  WriteToFingerprint();
+  systemSetup();
   authModeFingerPrint ==-1;
   authModeKeyCode="";
   lcd_bottomrow = messages[7];

@@ -93,6 +93,10 @@ void receiveRequest() {
       else if(request == 'D'){
           authMode = true;
       }
+      else if (request == 'C'){
+        setupMode = false;
+        authMode = false;
+      }
   }
 
 }
@@ -141,7 +145,7 @@ uint8_t getFingerprintEnroll() {
                 break;
             case FINGERPRINT_NOFINGER:
                 Serial.print("."); // trap 4  todo: send flag
-                FlagToSend = 'G';   //requestEvent();
+                //FlagToSend = 'G';   //requestEvent();
                 break;
             default:
                 Serial.println("Unknown error");  // todo: send flag
@@ -192,7 +196,7 @@ uint8_t getFingerprintEnroll() {
                 break;
             case FINGERPRINT_NOFINGER:
                 Serial.print(".");      // todo: send flag
-                FlagToSend = 'G';   //requestEvent();
+                //FlagToSend = 'G';   //requestEvent();
                 break;
             default:
                 Serial.println("Unknown error");   // todo: send flag
