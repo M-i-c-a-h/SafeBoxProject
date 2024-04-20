@@ -40,7 +40,7 @@ String authModeKeyCode="";
 int setupFingerPrint = -1;
 int authModeFingerPrint= -1;
 volatile int state= 1;
-int trials;
+int trials = 0;
 int iCursor = 0;
 
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;//lcd
@@ -54,12 +54,15 @@ String messages []= { "Set up your password",
                       "Access Granted",
                       "Authentication Mode",
                       "Enter KeyCode",
-                      "PassCode Mismatched"
+                      "PassCode Mismatched",
+                      "Door Open for 5 seconds",
+                      "***Authentication completed***"
                       };
 String lcd_toprow= "";
 String lcd_bottomrow= "";
 long long lcd_start= 0; //to write to the lcd every one sec
 const int buzzer = 7;
+const int buzzer2 = 8;
 void storeFourDigitValue(int value) {
   // Ensure value is within the four-digit range
   if (value < 0 || value > 9999) {
@@ -122,6 +125,8 @@ void setup() {
   // Setup serial monitor
   pinMode(13, OUTPUT);
   pinMode(buzzer, OUTPUT);
+  pinMode(buzzer2, OUTPUT);
+  //tone(buzzer2,500);
   pinMode(relay, OUTPUT);
  
   Serial.begin(9600);
@@ -204,10 +209,18 @@ void loop() {
   //delay(800);
   updateBuzzer();
 
+
   // if user fails 3 consecutive times -> buzzer && message
-  if(trials > 3){
+  if(trials > 2){
+    //noTone(buzzer);
     goCrazy();
   }
+  else if(trials == 0){
+    
+  }
+
+
+
   // digitalWrite(relay, HIGH);
   // delay(2000);
   // digitalWrite(relay, LOW);
@@ -215,6 +228,9 @@ void loop() {
 }
 
 void goCrazy(){
+  lcd_toprow = "SECURITY BREACH!!!";
+  displayLcd(1);
+  tone(buzzer2, 500);
   // turn buzzer on until door is open
   // security breech message
 }
@@ -224,6 +240,10 @@ void openSesame(){
   if(doorOpen){
     openStart = millis();
     // buzzer sound
+    noTone(buzzer2);
+    //tone(buzzer,1000);
+    digitalWrite(relay, LOW);
+    resetSystem();
     // turn redLed off && greenLed on
   }
 }
@@ -231,33 +251,38 @@ void openSesame(){
 void closeSesame(){
     // send current to solenoid
     openStart = 0;
-    resetSystem();
+    lcd_toprow= messages[6];
+    lcd_bottomrow= messages[7];
     displayLcd(1);
+    noTone(buzzer);
+    noTone(buzzer2);
+    digitalWrite(relay, HIGH);
+
     // buzzer sound
     // turn redLed on && greenLed off 
 }
 
 void updateBuzzer(){
   if(buzzerState == 1 && millis()-buzzerStart>=500){
-    buzzerState= 0;
-    buzzerStart= millis();
-    noTone(buzzer);
-  }
-  else if(buzzerState== 2 && millis()-buzzerStart>=500){
-    buzzerState= 9;
-    buzzerStart= millis();
-    noTone(buzzer);
-  }
-  else if(buzzerState==9 && millis()-buzzerStart>=500){
-    buzzerState= 11;
-    buzzerStart= millis();
-    tone(buzzer, 1000);
-  }
-  else if(buzzerState== 11 && millis()-buzzerStart>=500){
-    buzzerState= 0;
-    buzzerStart= millis();
-    noTone(buzzer);
-  }
+      buzzerState= 0;
+      buzzerStart= millis();
+      noTone(buzzer);
+    }
+    else if(buzzerState== 2 && millis()-buzzerStart>=500){
+      buzzerState= 9;
+      buzzerStart= millis();
+      noTone(buzzer);
+    }
+    else if(buzzerState==9 && millis()-buzzerStart>=500){
+      buzzerState= 11;
+      buzzerStart= millis();
+      tone(buzzer, 1000);
+    }
+    else if(buzzerState== 11 && millis()-buzzerStart>=500){
+      buzzerState= 0;
+      buzzerStart= millis();
+      noTone(buzzer);
+    }
 
   
 }
@@ -381,11 +406,14 @@ void authModeFunc(char result1, char result2){
         displayLcd(1);
         delay(2000);
         WriteToFingerprint();
+        Serial.println("fingerprint ready: ");
+        authModeFingerPrint = -1; //for sanity
+
        }
        // passcode mismatched
        else {
           authModeKeyCode= "";
-          lcd_bottomrow= messages[8];
+          lcd_bottomrow= messages[7];
           displayLcd(1);
           delay(1000);
           clearLCD(0,1);
@@ -403,8 +431,9 @@ void authModeFunc(char result1, char result2){
     updateBottomRow(result2);
     if(result2 == 'Q'){         //Two-factor authentication successful
       authModeFingerPrint = 1;
+      Serial.println("here");
       doorOpen = true;
-      //openSesame();
+      openSesame();
       trials = 0;
      }
      else{
@@ -419,6 +448,10 @@ void authModeFunc(char result1, char result2){
           displayLcd(1);
           delay(2000);
           resetSystem();
+          trials++;
+         }
+         else{
+          Serial.println("Problem");
          }
          
      }
@@ -465,7 +498,7 @@ void updateBottomRow(char flag){
           lcd_bottomrow = "No match found!";
           break;
       case 'Q':
-          lcd_toprow = "***Authentication completed***";
+          lcd_toprow = messages[10];
           lcd_bottomrow = "Access granted!!!";
           break;
       default:
@@ -475,6 +508,10 @@ void updateBottomRow(char flag){
 void displayLcd(bool override){
   //we can move the text here
   //TODO:move text 
+  if(doorOpen){
+    lcd_toprow= messages[5];
+    lcd_bottomrow= messages[9];
+  }
   if(override || millis()-lcd_start>=500){
     //iCursor = 0;
     lcd.setCursor(0,0);
