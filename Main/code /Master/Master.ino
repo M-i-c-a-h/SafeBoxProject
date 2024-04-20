@@ -26,18 +26,23 @@ int relay= 9;
 int buzzerState= 0;
 long buzzerStart= 0;
 long openStart = 0;
+
 bool setupMode= false;
 bool authMode= false;
 bool passcodeMatched = false;
 bool doorOpen = false;
+
 String setupKeyCode1="";
 String setupKeyCode2="";
 String stars="";
-int setupFingerPrint = -1;
 String authModeKeyCode="";
+
+int setupFingerPrint = -1;
 int authModeFingerPrint= -1;
 volatile int state= 1;
 int trials;
+int iCursor = 0;
+
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;//lcd
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);//lcd
 
@@ -196,12 +201,13 @@ void loop() {
     }
   }
   displayLcd(0);
+  //delay(800);
   updateBuzzer();
 <<<<<<< Updated upstream
 
 
   // if user fails 3 consecutive times -> buzzer && message
-  if(trails > 3){
+  if(trials > 3){
     goCrazy();
   }
 =======
@@ -472,12 +478,32 @@ void displayLcd(bool override){
   //we can move the text here
   //TODO:move text 
   if(override || millis()-lcd_start>=500){
-
+    //iCursor = 0;
     lcd.setCursor(0,0);
-    lcd.print(lcd_toprow);
+    // if text is < 16 print
+    if(lcd_toprow.length() <= 16){
+      lcd.print(lcd_toprow);
+    }
+    // if text > 16 scroll
+    else{
+      lcd.print(lcd_toprow);
+      //clearLCD(1,0);
+      //scroll((lcd_toprow + "  "),0);
+    }
+    
     lcd.setCursor(0, 1);
-  
-    lcd.print(lcd_bottomrow);
+    // if text is < 16 print
+    if(lcd_bottomrow.length() <= 16){
+      lcd.print(lcd_bottomrow);
+    }
+    // if text > 16 scroll
+    else{
+      lcd.print(lcd_bottomrow);
+      //clearLCD(0,1);
+      //scrollText((lcd_bottomrow + "  "),1);
+    }
+    //lcd.print(lcd_bottomrow);
+    //scrollText(lcd_bottomrow,1);
     lcd_start=millis();
   }
 }
@@ -521,4 +547,57 @@ void resetSystem(){
   authModeFingerPrint ==-1;
   authModeKeyCode="";
   lcd_bottomrow = messages[7]; // may not be needed
+}
+
+
+// control scrolling of text > 16 characters
+void scrollText(String text, int level) {
+  int lenOfText = text.length();
+
+  // Reset variable
+  if (iCursor >= lenOfText + 16) {
+    iCursor = 0;
+  } 
+
+  lcd.setCursor(0, level);
+
+  // Clear the display
+  lcd.print("                ");
+
+  // Print the message starting from iCursor position
+  for (int i = 0; i < 16; i++) {
+    lcd.setCursor(i, level);
+    lcd.print(text[(iCursor + i) % lenOfText]);
+  }
+
+  // Increment the cursor position for next iteration
+  iCursor++;
+
+}
+
+void scroll(String text, int level) {
+  int lenOfText = text.length();
+
+  // Reset variable
+  if (iCursor ==(lenOfText)) {
+    iCursor = 0;
+  } 
+
+  lcd.setCursor(0, level);
+
+  // This executes the 16 showable character 
+  if (iCursor < lenOfText - 16) {
+    for (int i = iCursor; i < iCursor + 16; i++) {
+      lcd.print(text[i]);  // Print the message to the LCD
+    }
+  } else {
+    for (int i = iCursor; i < (lenOfText - 1); i++) {
+      lcd.print(text[i]);  // print the message to the LCD
+    }
+    for (int i = 0; i <= 16 - (lenOfText - iCursor); i++) {
+      lcd.print(text[i]); // print the message to the LCD
+    }
+  }
+
+  iCursor++;
 }
