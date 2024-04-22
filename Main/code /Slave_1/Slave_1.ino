@@ -73,46 +73,9 @@ void setup() {
 
 void receiveEvent() {
 
-  // Read while data received
-  // while (0 < Wire.available()) {
-  //   delay(3);
-  //   char x = Wire.read();
-  //   answer += x;
-  //   Serial.println(answer);
-
-  //   if (x=='1'){
-  //     digitalWrite(13, HIGH);
-
-  //   }
-  //   else if (x=='0'){
-  //     digitalWrite(13, LOW);
-
-  //   }
-  //   else {
-  //     Serial.println(x);
-  //   }
-  
-  
-  // // Print to Serial Monitor
-  // Serial.println("Receive event");
-  // }
 }
 
 void requestEvent() {
-
-  // // Setup byte variable in the correct size
-  // byte response[ANSWERSIZE];
-  
-  // // Format answer as array
-  // for (byte i=0;i<ANSWERSIZE;i++) {
-  //   response[i] = (byte)answer.charAt(i);
-  // }
-  
-  // // Send response back to Master
-  // if(answer.length() == 4){
-  //   Wire.write(response,sizeof(response));
-  //   answer = "";
-  // }
   
   if(keyToSend != ' '){
     byte response = (byte) keyToSend;
@@ -122,14 +85,9 @@ void requestEvent() {
     
   }
  
-  
-  // Print to Serial Monitor
 }
 
 void loop() {
-
-  // Time delay in loop
-  //delay(2000);
  
   char key = keypad.getKey();
   

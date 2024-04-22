@@ -43,6 +43,7 @@ long openStart = 0;
 
 bool setupMode= false;
 bool authMode= false;
+bool factMode = false;
 bool passcodeMatched = false;
 bool doorOpen = false;
 
@@ -50,10 +51,12 @@ String setupKeyCode1="";
 String setupKeyCode2="";
 String stars="";
 String authModeKeyCode="";
+String factoryResetCode1 = "";
+String factoryResetCode2 = "";
 
 int setupFingerPrint = -1;
 int authModeFingerPrint= -1;
-volatile int state= 1;
+volatile int state = 1;
 int trials = 0;
 int iCursor = 0;
 int iCursor1 = 0;
@@ -114,6 +117,7 @@ void loop() {
     buzzerStart= millis();
   }
   switch(result1){
+    // enroll new user
     case 'A':
       clearLCD(1,1);
       iCursor1=iCursor2=0;
@@ -129,11 +133,23 @@ void loop() {
       authModeFingerPrint= -1;
       break;
 
+      // cancel current operation
       case 'C':
       clearLCD(1,1);
       iCursor1=iCursor2=0;
       resetSystem();
       break;
+
+      // attempt system wipe
+      case 'D':
+      clearLCD(1,1);
+      iCursor1=iCursor2=0;
+      lcd_toprow = "WARNING!!! IN FACTORY RESET MODE....";
+      lcd_bottomrow = "ENTER FACTORY RESET CODE";
+      displayLcd(1);
+      factMode = true;
+      break;
+
     default:
       break;
   }
@@ -144,6 +160,9 @@ void loop() {
   }
   else if(authMode){
     authModeFunc(result1, result2);
+  }
+  else if(factMode){
+    FACTORY_RESET(result1);
   }
 
   // if door is open ->
@@ -321,7 +340,7 @@ void updateBuzzer(){
 
 // function sets system for new user (Setup mode)
 void setupModeFunc(char result1, char result2){
-  //TODO: add option to restart setup at anypoint during setup process
+
   if(setupKeyCode1.length()<4){ //keyCode not set
    
     if(isdigit(result1)){
@@ -598,6 +617,16 @@ void closeFingerprint(){
 }
 
 
+// function turns off fingerprint scanner
+void wipeFingerprint(){
+  Wire.beginTransmission(SLAVE_ADDR2);
+  Wire.write('X');
+  Wire.endTransmission();
+
+  Wire.beginTransmission(SLAVE_ADDR2);
+}
+
+
 // function sends request to slave_2 -Arduino fingerprint
 void WriteToFingerprint(){
 
@@ -634,6 +663,7 @@ void resetSystem(){
   setupFingerPrint= -1;
   setupMode = false;
   authMode = false;
+  factMode = false;
   systemSetup();
   authModeFingerPrint ==-1;
   authModeKeyCode="";
@@ -666,4 +696,73 @@ void scrollText(String text, int level, int& iCursor) {
   // Increment the cursor position for next iteration
   iCursor++;
 
+}
+
+void FACTORY_RESET(char result1){
+
+  if(factoryResetCode1.length()<4){ //keyCode not set
+   
+    if(isdigit(result1)){
+      clearLCD(0,1);
+      Serial.println("here");
+
+      // build access code from user
+      factoryResetCode1 += result1;
+      stars+="*";
+      lcd_bottomrow=stars;
+      if (factoryResetCode1.length()==4){
+        clearLCD(1,1);
+        iCursor1=iCursor2=0;
+        lcd_bottomrow=messages[2];
+        stars="";
+      }
+    }
+    
+  }
+  // keyCode not confirmed
+  else if(factoryResetCode2.length()<4){
+    if(isdigit(result1)){
+      clearLCD(0,1);
+      Serial.println("here");
+      
+      factoryResetCode2+=result1;
+      stars+="*";
+      lcd_bottomrow=stars;
+      if (factoryResetCode2.length()==4){
+       //compare with factoryResetCode1
+       clearLCD(0,1);
+       stars="";
+
+       if (factoryResetCode1 == factoryResetCode2){       
+        
+        factoryResetCode1 = factoryResetCode2 = "";
+
+        // send wipe message to fingerprint
+        wipeFingerprint();
+
+        //**************** WIPE MEMORY *************
+        for (int i = 0 ; i < EEPROM.length() ; i++) {
+          EEPROM.write(i, 0);
+        }
+        //**************** WIPE MEMORY *************
+
+        resetSystem();
+       }
+
+       // ignore all commands go back to default mode
+       else{
+        factoryResetCode1 = factoryResetCode2 = "";
+        resetSystem();
+       }
+
+      }
+    }
+  }
+
+  // ******************* BE WEARY OF THIS CODE ???????????????
+  else{
+
+    factoryResetCode1 = factoryResetCode2 = "";
+    resetSystem();
+  }
 }

@@ -111,6 +111,17 @@ void receiveRequest() {
         setupMode = false;
         authMode = false;
       }
+      // wipe memory
+      else if (request == 'X'){
+
+        //**************** WIPE MEMORY *************
+        for (int i = 0 ; i < EEPROM.length() ; i++) {
+            EEPROM.write(i, 0);
+        }
+        //**************** WIPE MEMORY *************
+        setupMode = false;
+        authMode = false;
+       }
   }
 
 }
@@ -128,16 +139,13 @@ void requestEvent() {
 
 void loop() {
 
-  // Time delay in loop
-  //delay(2000);
   if (setupMode){
-      // run enroll code
-      while (! getFingerprintEnroll() );
-
+    // run enroll code
+    while (! getFingerprintEnroll() );
   }
+  
   else if(authMode){
     // run authentication code
-    
     getFingerprintID();  // returns UserID
   }
 }
