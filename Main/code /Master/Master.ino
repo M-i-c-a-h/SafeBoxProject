@@ -53,8 +53,7 @@ String stars="";
 String authModeKeyCode="";
 String factoryResetCode1 = "";
 String factoryResetCode2 = "";
-int led1= A0;
-int led2= A1;
+
 int setupFingerPrint = -1;
 int authModeFingerPrint= -1;
 volatile int state = 1;
@@ -120,10 +119,12 @@ void loop() {
   switch(result1){
     // enroll new user
     case 'A':
+      lcd.clear();
       clearLCD(1,1);
-      iCursor1=iCursor2=0;
+     
       lcd_toprow= messages[0];
       lcd_bottomrow= messages[1];
+      iCursor1=iCursor2=0;
       closeFingerprint();
       setupKeyCode1= "";
       setupKeyCode2= "";
@@ -143,14 +144,17 @@ void loop() {
 
       // attempt system wipe
       case 'D':
+      lcd.clear();
       clearLCD(1,1);
-      iCursor1=iCursor2=0;
+      
       factMode = true;
-      resetSystem();
+      authMode = false;
+      setupMode = false;
       lcd_toprow = "WARNING!!! IN FACTORY RESET MODE....";
       lcd_bottomrow = "ENTER FACTORY RESET CODE";
-      displayLcd(1);
+      iCursor1=iCursor2=0;
       
+      displayLcd(1);
       break;
 
     default:
@@ -165,7 +169,9 @@ void loop() {
     authModeFunc(result1, result2);
   }
   else if(factMode){
+    closeFingerprint();
     FACTORY_RESET(result1);
+    //setupMode = true;
   }
 
   // if door is open ->
@@ -200,9 +206,7 @@ void loop() {
 void systemSetup(){
   closeFingerprint();   // shutdown fingerprint if on
   int passcode= readFourDigitValue();
-  if(factMode){
-    return;
-  }
+
   if (passcode == -1){  //  no password on system yet
     setupMode = true;
     clearLCD(1,1);
@@ -381,6 +385,8 @@ void setupModeFunc(char result1, char result2){
        if (setupKeyCode2==setupKeyCode1){
         lcd_bottomrow= "PassCode Match";
         passcodeMatched = true;
+        delay(2000);
+        clearLCD(1,1);
         WriteToFingerprint();
         clearLCD(1,1);
         iCursor1=iCursor2=0;
@@ -445,12 +451,12 @@ void clearLCD(bool top, bool bottom){
   if(top){
     lcd.setCursor(0, 0);
   
-    lcd.print("                     ");
+    lcd.print("                ");
   }
   if (bottom){
     lcd.setCursor(0, 1);
   
-    lcd.print("                     ");
+    lcd.print("                ");
   }
    
 }
@@ -508,7 +514,6 @@ void authModeFunc(char result1, char result2){
       Serial.println("here");
       doorOpen = true;
       clearLCD(1,1);
-      lcd.clear();
       iCursor1= iCursor2=0;
       openSesame();
       trials = 0;
@@ -537,6 +542,7 @@ void updateBottomRow(char flag){
           lcd_bottomrow = "Waiting for valid finger to enroll new user";
           break;
       case 'F':
+          clearLCD(1,1);
           lcd_bottomrow = "Image taken";
           break;
       case 'G':
@@ -669,11 +675,10 @@ void resetSystem(){
   setupFingerPrint= -1;
   setupMode = false;
   authMode = false;
+  factMode = false;
   systemSetup();
   authModeFingerPrint ==-1;
   authModeKeyCode="";
-  factoryResetCode1 = "";
-  String factoryResetCode2 = "";
   stars = "";
   count = 1;
   lcd_bottomrow = messages[7]; // may not be needed
@@ -711,7 +716,7 @@ void FACTORY_RESET(char result1){
    
     if(isdigit(result1)){
       clearLCD(0,1);
-      Serial.println("here bobo");
+      Serial.println("here");
 
       // build access code from user
       factoryResetCode1 += result1;
@@ -730,7 +735,7 @@ void FACTORY_RESET(char result1){
   else if(factoryResetCode2.length()<4){
     if(isdigit(result1)){
       clearLCD(0,1);
-      Serial.println("here bobo");
+      Serial.println("here");
       
       factoryResetCode2+=result1;
       stars+="*";
@@ -741,28 +746,23 @@ void FACTORY_RESET(char result1){
        stars="";
 
        if (factoryResetCode1.equals(factoryResetCode2)){       
-        
+        Serial.println("Same");
         factoryResetCode1 = factoryResetCode2 = "";
 
         // send wipe message to fingerprint
-        Serial.println("About to wipe mememory");
         wipeFingerprint();
 
         //**************** WIPE MEMORY *************
-        // for (int i = 0 ; i < EEPROM.length() ; i++) {
-        //   EEPROM.write(i, 0);
-        // }
         EEPROM.write(0, 255);
         EEPROM.write(1, 255);
         //**************** WIPE MEMORY *************
-        factMode= false;
+
         resetSystem();
        }
 
        // ignore all commands go back to default mode
        else{
         factoryResetCode1 = factoryResetCode2 = "";
-        factMode=false;
         resetSystem();
        }
 
@@ -772,7 +772,7 @@ void FACTORY_RESET(char result1){
 
   // ******************* BE WEARY OF THIS CODE ???????????????
   else{
-    
+    clearLCD(1,1);
     factoryResetCode1 = factoryResetCode2 = "";
     resetSystem();
   }
