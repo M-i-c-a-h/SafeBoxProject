@@ -1,10 +1,24 @@
 /*
-  I2C Master Demo
-  i2c-master-demo.ino
-  Demonstrate use of I2C bus
-  Master sends character and gets reply from Slave
-  DroneBot Workshop 2019
-  https://dronebotworkshop.com
+Group #52
+Group Members 
+Victor Savage - vsava3@uic.edu
+Micah Olugbamila -  oolug4@uic.edu
+Maryann Olugbamila - aolug3@uic.edu
+
+PROJECT -
+DEADLOCK
+
+ABSTRACT -
+This project implements a versatile
+safe-box lock system that enhances
+security through dual authentication
+methods. Users gain access by
+providing either a passcode or a
+fingerprint scan, similar to modern
+mobile devices. This system offers
+these key features: Enhanced Security,
+User Convenience, and Potential for
+Customization.
 */
 
 // Include Arduino Wire library for I2C
@@ -65,60 +79,9 @@ String lcd_bottomrow= "";
 long long lcd_start= 0; //to write to the lcd every one sec
 const int buzzer = 7;
 const int buzzer2 = 8;
-void storeFourDigitValue(int value) {
-  // Ensure value is within the four-digit range
-  if (value < 0 || value > 9999) {
-    return;  // Handle error if necessary
-  }
 
-  byte highByte = (value >> 8) & 0xFF;  // Extract higher-order byte
-  byte lowByte = value & 0xFF;          // Extract lower-order byte
 
-  EEPROM.write(0, highByte);  // Store at address 0
-  EEPROM.write(1, lowByte);  // Store at address 1
-}
-
-int readFourDigitValue() {
-  byte highByte = EEPROM.read(0);
-
-  byte lowByte = EEPROM.read(1);
-  
-  if (highByte == 255 && lowByte == 255) {
-        return -1; // Or another value that signifies "not stored"
-    }
-  return (highByte << 8) | lowByte; // Reconstruct the original value
-}
-
-// keypad Arduino
-char request_Slave(){
-  //this slave should return keypad related data
-  Wire.requestFrom(SLAVE_ADDR,1);
-  char result = ' ';
-  if (Wire.available()) {
-
-    char b = Wire.read();
-
-    return b;
-   
-  } 
-  return result;
-}
-
-char request_Slave2(){
-  //this slave should return fingerprint related data
-
-  Wire.requestFrom(SLAVE_ADDR2,1);
-  char result = ' ';
-  if (Wire.available()) {
-
-    char b = Wire.read();
-    
-    result = b;
-    // updateBottomRow(result);
-   
-  } 
-  return result;
-}
+// setup Arduino system
 void setup() {
 
   // Initialize I2C communications as Master
@@ -136,36 +99,14 @@ void setup() {
   digitalWrite(13, HIGH);
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
-  // Print a message to the LCD.
-  //lcd.print("hello, world!");
   digitalWrite(relay, HIGH);
   systemSetup();
 }
 
-void systemSetup(){
-  closeFingerprint();   // shutdown fingerprint if on
-  int passcode= readFourDigitValue();
-  if (passcode == -1){//no password on system yet
-    setupMode = true;
-    clearLCD(1,1);
-    lcd_toprow= messages[0];
-    lcd_bottomrow= messages[1];
-    //TODO: send message to fingerprint slave to run enrollment code
-    
-  }
-  else{
-    //TODO: send message to fingerprint slave to run authentication code
-    authMode = true;
-    clearLCD(1,1);
-    lcd_toprow= messages[6];
-    lcd_bottomrow= messages[7];
-    trials = 0;
-  }
-  
-}
+// system looping class
 void loop() {
  
-  char result1 = request_Slave();//
+  char result1 = request_Slave();
   char result2 = request_Slave2();
   if (result1 != 0 ){
     tone(buzzer, 1000);
@@ -196,7 +137,7 @@ void loop() {
     default:
       break;
   }
-  //TODO: bypass commands if certain commands are received from keypad
+  // bypass commands if certain commands are received from keypad
 
   if (setupMode){
     setupModeFunc(result1, result2);
@@ -215,13 +156,11 @@ void loop() {
     }
   }
   displayLcd(0);
-  //delay(800);
   updateBuzzer();
 
 
   // if user fails 3 consecutive times -> buzzer && message
   if(trials > 2){
-    //noTone(buzzer);
     if(count == 1){
       clearLCD(1,1);
       iCursor1 = iCursor2 = 0;
@@ -231,24 +170,98 @@ void loop() {
     }
     goCrazy();
   }
-  else if(trials == 0){
+
+}
+
+
+// function resets the system
+void systemSetup(){
+  closeFingerprint();   // shutdown fingerprint if on
+  int passcode= readFourDigitValue();
+
+  if (passcode == -1){  //  no password on system yet
+    setupMode = true;
+    clearLCD(1,1);
+    lcd_toprow= messages[0];
+    lcd_bottomrow= messages[1];
+    // send message to fingerprint slave to run enrollment code
     
   }
-
-
-
-  // digitalWrite(relay, HIGH);
-  // delay(2000);
-  // digitalWrite(relay, LOW);
-  // delay(2000);
+  else{
+    // send message to fingerprint slave to run authentication code
+    authMode = true;
+    clearLCD(1,1);
+    lcd_toprow= messages[6];
+    lcd_bottomrow= messages[7];
+    trials = 0;
+  }
+  
 }
 
+
+// funtion returns password saved in memory
+void storeFourDigitValue(int value) {
+  // Ensure value is within the four-digit range
+  if (value < 0 || value > 9999) {
+    return;  // Handle error if necessary
+  }
+
+  byte highByte = (value >> 8) & 0xFF;  // Extract higher-order byte
+  byte lowByte = value & 0xFF;          // Extract lower-order byte
+
+  EEPROM.write(0, highByte);  // Store at address 0
+  EEPROM.write(1, lowByte);  // Store at address 1
+}
+
+int readFourDigitValue() {
+  byte highByte = EEPROM.read(0);
+
+  byte lowByte = EEPROM.read(1);
+  
+  if (highByte == 255 && lowByte == 255) {
+        return -1; // Or another value that signifies "not stored"
+    }
+  return (highByte << 8) | lowByte; // Reconstruct the original value
+}
+
+// function reads in requests from Slave_1 -keypad Arduino
+char request_Slave(){
+  //this slave should return keypad related data
+  Wire.requestFrom(SLAVE_ADDR,1);
+  char result = ' ';
+  if (Wire.available()) {
+
+    char b = Wire.read();
+
+    return b;
+   
+  } 
+  return result;
+}
+
+// function reads in requests from Slave_2 -fingerprint Arduino
+char request_Slave2(){
+
+  Wire.requestFrom(SLAVE_ADDR2,1);
+  char result = ' ';
+  if (Wire.available()) {
+
+    char b = Wire.read();
+    
+    result = b;
+   
+  } 
+  return result;
+}
+
+// function turns buzzer on until door is open
 void goCrazy(){
   tone(buzzer2, 500);
-  // turn buzzer on until door is open
-  // security breech message
+  
 }
 
+// function controls door opening
+// relays low current to RELAY which opens solenoid for time interval
 void openSesame(){
     // send current to solenoid
   if(doorOpen){
@@ -262,6 +275,9 @@ void openSesame(){
   }
 }
 
+
+// function controls door closing
+// relays high current to RELAY which closes solenoid
 void closeSesame(){
     // send current to solenoid
     openStart = 0;
@@ -274,11 +290,9 @@ void closeSesame(){
     noTone(buzzer2);
     digitalWrite(relay, HIGH);
     
-
-    // buzzer sound
-    // turn redLed on && greenLed off 
 }
 
+// function controls buzzer output
 void updateBuzzer(){
   if(buzzerState == 1 && millis()-buzzerStart>=500){
       buzzerState= 0;
@@ -304,6 +318,8 @@ void updateBuzzer(){
   
 }
 
+
+// function sets system for new user (Setup mode)
 void setupModeFunc(char result1, char result2){
   //TODO: add option to restart setup at anypoint during setup process
   if(setupKeyCode1.length()<4){ //keyCode not set
@@ -369,11 +385,11 @@ void setupModeFunc(char result1, char result2){
       }
     }
   }
-  else if (setupFingerPrint == -1){//fingerprint not set
+  else if (setupFingerPrint == -1){   //  fingerprint not set
     updateBottomRow(result2);
       // successful enrollment
      if(result2 == '1'){
-      //TODO: save result to eeprom
+      // save result to eeprom
       setupFingerPrint = 1;
       lcd_bottomrow ="Setup complete";
       delay(2000);
@@ -398,6 +414,8 @@ void setupModeFunc(char result1, char result2){
   }
 }
 
+
+// function clears either level of LCD screen
 void clearLCD(bool top, bool bottom){
  
   if(top){
@@ -412,6 +430,9 @@ void clearLCD(bool top, bool bottom){
   }
    
 }
+
+
+// function sets system into authentication mode
 void authModeFunc(char result1, char result2){
   if (authModeKeyCode.length()<4){
     if(isdigit(result1)){
@@ -467,29 +488,23 @@ void authModeFunc(char result1, char result2){
       openSesame();
       trials = 0;
      }
-     else{
-         //lcd_bottomrow = "some message";
-         //TODO: handle different messages
-         
+     else{ 
+  
          if (result2 == 'P'){ //no match found
           authMode = true;
           clearLCD(0, 1);
           lcd_toprow= messages[6];
-          //lcd_bottomrow= messages[7];
           displayLcd(1);
           delay(2000);
           resetSystem();
           trials++;
          }
-         else{
-          Serial.println("Problem");
-         }
          
      }
-     
-     //updateBottomRow(result2);
   }
 }
+
+// function decodes message received from slave_2 -fingerprint scanner
 void updateBottomRow(char flag){
 
   switch(flag){
@@ -537,16 +552,17 @@ void updateBottomRow(char flag){
       break;
   }
 }
+
+// function displays new output to LCD
 void displayLcd(bool override){
-  //we can move the text here
-  //TODO:move text 
+
   if(doorOpen){ 
     lcd_toprow= messages[5];
     lcd_bottomrow= messages[9];
     
   }
   if(override || millis()-lcd_start>=500){
-    //iCursor = 0;
+
     lcd.setCursor(0,0);
     // if text is < 16 print
     if(lcd_toprow.length() <= 16){
@@ -555,7 +571,6 @@ void displayLcd(bool override){
     // if text > 16 scroll
     else{
       lcd.print(lcd_toprow);
-      //clearLCD(1,0);
       scrollText((lcd_toprow + "  "),0,iCursor1);
     }
     
@@ -567,14 +582,13 @@ void displayLcd(bool override){
     // if text > 16 scroll
     else{
       lcd.print(lcd_bottomrow);
-      //clearLCD(0,1);
       scrollText((lcd_bottomrow + "  "),1,iCursor2);
     }
-    //lcd.print(lcd_bottomrow);
-    //scrollText(lcd_bottomrow,1);
     lcd_start=millis();
   }
 }
+
+// function turns off fingerprint scanner
 void closeFingerprint(){
   Wire.beginTransmission(SLAVE_ADDR2);
   Wire.write('C');
@@ -582,8 +596,10 @@ void closeFingerprint(){
 
   Wire.beginTransmission(SLAVE_ADDR2);
 }
+
+
+// function sends request to slave_2 -Arduino fingerprint
 void WriteToFingerprint(){
-    //delay(2000);
 
     if (setupMode){
         Wire.beginTransmission(SLAVE_ADDR2);
@@ -610,6 +626,8 @@ void WriteToFingerprint(){
       Wire.beginTransmission(SLAVE_ADDR2);
     }
 }
+
+// function overrides system and resets
 void resetSystem(){
   setupKeyCode1= "";
   setupKeyCode2= "";
@@ -648,31 +666,4 @@ void scrollText(String text, int level, int& iCursor) {
   // Increment the cursor position for next iteration
   iCursor++;
 
-}
-
-void scroll(String text, int level) {
-  int lenOfText = text.length();
-
-  // Reset variable
-  if (iCursor ==(lenOfText)) {
-    iCursor = 0;
-  } 
-
-  lcd.setCursor(0, level);
-
-  // This executes the 16 showable character 
-  if (iCursor < lenOfText - 16) {
-    for (int i = iCursor; i < iCursor + 16; i++) {
-      lcd.print(text[i]);  // Print the message to the LCD
-    }
-  } else {
-    for (int i = iCursor; i < (lenOfText - 1); i++) {
-      lcd.print(text[i]);  // print the message to the LCD
-    }
-    for (int i = 0; i <= 16 - (lenOfText - iCursor); i++) {
-      lcd.print(text[i]); // print the message to the LCD
-    }
-  }
-
-  iCursor++;
 }

@@ -1,10 +1,25 @@
 /*
-  I2C Slave Demo
-  i2c-slave-demo.ino
-  Demonstrate use of I2C bus
-  Slave receives character from Master and responds
-  DroneBot Workshop 2019
-  https://dronebotworkshop.com
+Group #52
+Group Members 
+Victor Savage - vsava3@uic.edu
+Micah Olugbamila -  oolug4@uic.edu
+Maryann Olugbamila - aolug3@uic.edu
+
+PROJECT -
+DEADLOCK
+
+ABSTRACT -
+This project implements a versatile
+safe-box lock system that enhances
+security through dual authentication
+methods. Users gain access by
+providing either a passcode or a
+fingerprint scan, similar to modern
+mobile devices. This system offers
+these key features: Enhanced Security,
+User Convenience, and Potential for
+Customization.
+
 */
 /*
 This Slave would handle keypad connections
