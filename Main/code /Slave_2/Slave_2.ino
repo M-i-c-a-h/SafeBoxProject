@@ -115,9 +115,7 @@ void receiveRequest() {
       else if (request == 'X'){
 
         //**************** WIPE MEMORY *************
-        for (int i = 0 ; i < EEPROM.length() ; i++) {
-            EEPROM.write(i, 0);
-        }
+        finger.emptyDatabase();
         //**************** WIPE MEMORY *************
         setupMode = false;
         authMode = false;
